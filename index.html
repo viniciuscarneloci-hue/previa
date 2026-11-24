@@ -285,7 +285,7 @@ html[data-theme="dark"] .mbar { background: rgba(20,26,22,.82); border-top-color
 .dish-now h3 { font-family: "Sora"; font-weight: 600; font-size: 1.9rem; letter-spacing: -.035em; }
 .dish-now p { color: var(--pedra); font-size: 1.05rem; }
 .dish-now .data { color: var(--tinta); font-weight: 500; font-variant-numeric: tabular-nums; }
-.dishes { display: grid; grid-template-columns: repeat(3, 1fr); gap: .6rem; }
+.dishes { display: grid; grid-template-columns: repeat(4, 1fr); gap: .6rem; }
 .dishes button { display: grid; justify-items: center; gap: .35rem; padding: .7rem .4rem .8rem; border: 0; border-radius: 1rem; background: var(--branco); cursor: pointer; font-family: "Geist"; font-weight: 500; font-size: .95rem; color: var(--tinta); box-shadow: inset 0 0 0 1px rgba(20,26,22,.08); transition: box-shadow .25s var(--ease), transform .25s var(--ease); min-height: 44px; }
 .dishes button img { width: 3.6rem; height: 3.6rem; object-fit: contain; }
 .dishes button:hover { transform: translateY(-2px); }
@@ -515,6 +515,7 @@ html[data-theme="dark"] .mbar { background: rgba(20,26,22,.82); border-top-color
           <button type="button" role="radio" aria-checked="true" data-dish="pizza-margherita"><img src="img/poster-pizza-margherita.webp" alt="" width="64" height="64" loading="lazy" /><span>Margherita</span></button>
           <button type="button" role="radio" aria-checked="false" data-dish="risoto-funghi"><img src="img/poster-risoto-funghi.webp" alt="" width="64" height="64" loading="lazy" /><span>Risoto</span></button>
           <button type="button" role="radio" aria-checked="false" data-dish="spaghetti-pomodoro"><img src="img/poster-spaghetti-pomodoro.webp" alt="" width="64" height="64" loading="lazy" /><span>Pomodoro</span></button>
+          <button type="button" role="radio" aria-checked="false" data-dish="smash-burger"><img src="img/poster-smash-burger.webp" alt="" width="64" height="64" loading="lazy" /><span>Burger</span></button>
         </div>
         <div class="open">
           <button type="button" class="btn-p wide" data-ar><span class="hd" aria-hidden="true"></span><span data-ar-label>Ver na minha mesa</span></button>
@@ -587,7 +588,8 @@ html[data-theme="dark"] .mbar { background: rgba(20,26,22,.82); border-top-color
     const DISHES = {
       'pizza-margherita': { name: 'Pizza margherita', detail: 'Molho de tomate, muçarela de búfala, manjericão', data: '29 cm · serve 2 · R$ 68' },
       'risoto-funghi': { name: 'Risoto de cogumelos', detail: 'Arbóreo, mix de cogumelos, parmesão, tomilho', data: 'Prato de 28 cm · R$ 62' },
-      'spaghetti-pomodoro': { name: 'Spaghetti al pomodoro', detail: 'Molho de tomate fresco, manjericão', data: 'Prato de 27 cm · R$ 48' }
+      'spaghetti-pomodoro': { name: 'Spaghetti al pomodoro', detail: 'Molho de tomate fresco, manjericão', data: 'Prato de 27 cm · R$ 48' },
+      'smash-burger': { name: 'Smash burger duplo', detail: 'Dois smash de 90 g, cheddar, bacon, alface, tomate, cebola roxa', data: 'Pão de 12 cm · R$ 46' }
     };
     const mv = root.querySelector('[data-mv]'), arBtn = root.querySelector('[data-ar]'), arLabel = root.querySelector('[data-ar-label]');
     const qr = root.querySelector('[data-qr]'), load = root.querySelector('[data-load]');
