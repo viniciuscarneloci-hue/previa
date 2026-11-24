@@ -1,0 +1,986 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="theme-color" content="#F4F5F2" />
+<link rel="preload" as="image" href="img/hero-mesa-m.webp" media="(max-aspect-ratio: 1/1)" />
+<link rel="preload" as="image" href="img/hero-mesa.webp" media="(min-aspect-ratio: 1/1)" />
+<title>Previa</title>
+<meta name="description" content="Previa: cardápio em realidade aumentada, sites e plaquinhas NFC para restaurantes. Veja antes de pedir." />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@300..700&family=Sora:wght@100..800&display=swap" />
+<style>
+/* Previa · manual v1.3. Layout e animações adaptados do modelo enviado (seção 1: topo).
+   Celular é o canal principal: cada regra de tela pequena foi pensada para toque, barra do navegador e áreas seguras. */
+:root {
+  --porcelana: #F4F5F2; --tinta: #141A16; --louro: #22402F; --salvia: #8DA392;
+  --latao: #A07C45; --halo: #A9E3CF; --pedra: #5F6660; --mesa: #E2E5E0; --branco: #FFFFFF;
+  --page: var(--porcelana);
+  --ease: cubic-bezier(.65,.05,0,1);
+  color-scheme: light;
+}
+html { font-size: calc(100vw / 90); }
+@media (max-width: 991px) { html { font-size: calc(100vw / 60); } }
+@media (max-width: 600px) { html { font-size: calc(100vw / 24.375); } }
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+a { color: inherit; text-decoration: none; -webkit-tap-highlight-color: transparent; }
+img, video, svg { display: block; }
+body { background: var(--page); color: var(--tinta); font-family: "Sora", system-ui, sans-serif; overflow-x: clip;
+  transition: background-color .7s var(--ease); -webkit-font-smoothing: antialiased; }
+html.lenis, html.lenis body { height: auto; }
+.lenis.lenis-smooth { scroll-behavior: auto !important; }
+main { visibility: hidden; }
+html[data-page-ready] main { visibility: visible; }
+[data-text-reveal], [data-scroll-reveal] { visibility: hidden; }
+:focus-visible { outline: 2px solid var(--latao); outline-offset: 3px; border-radius: 4px; }
+[hidden] { display: none !important; }
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+/* Tipografia: Sora pesada contra Sora leve, no lugar de grotesca + serifa */
+.h-hero { font-family: "Sora"; font-weight: 700; font-size: 9rem; line-height: .86em; letter-spacing: -.055em; }
+.alt { font-weight: 200; letter-spacing: -.045em; }
+.eyebrow-m { font-weight: 300; font-size: 2.5rem; line-height: 1em; letter-spacing: -.035em; }
+.para { font-family: "Geist"; font-size: 1.25rem; line-height: 1.45; letter-spacing: -.01em; }
+.lede { font-family: "Geist"; font-weight: 400; font-size: 1.35rem; line-height: 1.4; letter-spacing: -.01em; color: var(--pedra); max-width: 30em; margin-top: -.5rem; text-wrap: balance; }
+.line { padding-bottom: .08em; margin-bottom: -.08em; }
+@media (max-width: 991px) { .h-hero { font-size: 6.4rem; } }
+@media (max-width: 600px) { .h-hero { font-size: 4.4rem; } .lede { font-size: max(15px, 1.05rem); max-width: 20em; margin-top: -.25rem; } .eyebrow-m { font-size: 1.75rem; } }
+
+/* 5.1 Abertura: rabisco em Louro */
+.wipe { position: fixed; inset: 0; z-index: 1000; pointer-events: none; overflow: clip; }
+.wipe svg { width: 100%; height: 100%; }
+.wipe path { fill: none; stroke: var(--louro); stroke-linecap: round; stroke-linejoin: round; stroke-width: 0; }
+.wipe[data-transition-ready] { display: none; }
+
+/* 5.2 Etiqueta do cursor (Halo) */
+.cursor-label { position: fixed; top: 0; left: 0; z-index: 100; pointer-events: none; }
+.cursor-label .card { width: 9.5rem; overflow: hidden; background: var(--halo); color: var(--tinta); transform: scale(0); transition: transform .4s var(--ease); position: relative; border-radius: .25rem; }
+.cursor-label[data-cursor-marquee-status="active"] .card { transform: scale(1); }
+.cursor-label .t { display: flex; position: relative; }
+.cursor-label span { font-weight: 600; font-size: 1.1rem; padding: .45em .3em; white-space: nowrap; animation: marq 3s linear infinite paused; flex: none; }
+.cursor-label span + span { position: absolute; left: 100%; }
+@keyframes marq { to { transform: translateX(-100%); } }
+
+/* 5.3 Navegação */
+.nav { position: fixed; inset: 0 0 auto; z-index: 50; display: flex; justify-content: space-between; align-items: center; padding: 1.25rem 1.5rem; pointer-events: none; }
+.nav > * { pointer-events: auto; }
+/* Logo, menu e contato em cápsulas brancas: a marca fica legível sobre vídeo, fotos e o tema escuro */
+.nav .logo { height: 3rem; padding: 0 1.15rem 0 .8rem; background: var(--branco); border-radius: 99rem; font-size: 1.55rem; gap: .45rem; }
+.nav .logo svg { width: 1.75rem; height: 1.75rem; }
+.nav .logo, .pill, .contact { box-shadow: 0 .6rem 1.6rem -1rem rgba(20,26,22,.35), inset 0 0 0 1px rgba(20,26,22,.05); transition: box-shadow .4s var(--ease); }
+.logo { display: inline-flex; align-items: center; gap: .55rem; color: var(--tinta); font-size: 2.1rem; }
+.logo svg { width: 2.3rem; height: 2.3rem; }
+.word { font-weight: 400; letter-spacing: -.04em; line-height: 1; }
+.word .i { position: relative; display: inline-block; }
+.word .i::after { content: ""; position: absolute; width: .17em; height: .17em; border-radius: 50%; background: var(--latao); left: 50%; transform: translateX(-50%); top: .06em; }
+.pill { position: absolute; left: 50%; top: 1.25rem; translate: -50% 0; height: 3rem; padding: 0 1.25rem; gap: 1.5rem; background: var(--branco); border-radius: 99rem; display: flex; align-items: center; }
+.navlink { position: relative; display: flex; flex-direction: column; font-weight: 600; font-size: 1rem; letter-spacing: -.02em; }
+.draw-box { position: absolute; left: 0; top: 100%; width: 100%; height: .5em; color: var(--latao); pointer-events: none; }
+.draw-box svg { width: 100%; height: 100%; overflow: visible; }
+.contact { height: 3rem; padding: 0 1.25rem; gap: .5rem; background: var(--branco); border-radius: 99rem; display: flex; align-items: center; font-weight: 600; font-size: 1rem; letter-spacing: -.02em; }
+.contact .dot { width: .45rem; height: .45rem; border-radius: 50%; background: var(--latao); }
+@media (max-width: 991px) { .pill { display: none; } }
+@media (max-width: 600px) { .nav { padding: calc(.75rem + env(safe-area-inset-top)) 1rem .75rem; } .nav .logo { height: 44px; font-size: 21px; padding: 0 1rem 0 .7rem; } .nav .logo svg { width: 24px; height: 24px; } .contact { height: 44px; font-size: 15px; padding: 0 1rem; } }
+
+/* 5.4 Topo */
+.hero { position: relative; height: 100vh; height: 100svh; min-height: 34rem; overflow: hidden; display: flex; align-items: center; justify-content: center; }
+.hero video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: center 50%; }
+.hero .veil { position: absolute; inset: 0; background: radial-gradient(62% 58% at 50% 48%, rgba(244,245,242,.9) 28%, rgba(244,245,242,.45) 62%, rgba(244,245,242,.05) 100%); pointer-events: none; }
+.hero-content { position: relative; z-index: 2; display: flex; flex-direction: column; align-items: center; gap: 1.9rem; margin-top: -2rem; text-align: center; }
+.cta { display: inline-flex; align-items: center; gap: .45em; font-weight: 300; font-size: 1.5rem; letter-spacing: -.03em; line-height: 1; min-height: 44px; }
+.cta .arrow { rotate: -90deg; }
+.actions { display: flex; align-items: center; gap: 2.25rem; margin-top: .5rem; }
+.btn-p { display: inline-flex; align-items: center; gap: .7rem; height: 3.6rem; padding: 0 1.7rem; border-radius: 99rem; background: var(--louro); color: var(--porcelana); font-family: "Geist"; font-weight: 600; font-size: 1.1rem; letter-spacing: -.01em; box-shadow: 0 1.2rem 2.4rem -1.4rem rgba(34,64,47,.8); transition: background-color .3s var(--ease), transform .4s var(--ease); }
+.btn-p:hover { background: #2C5240; transform: translateY(-2px); }
+.hd { width: .55rem; height: .55rem; border-radius: 50%; background: var(--halo); box-shadow: 0 0 0 .3rem rgba(169,227,207,.28); flex: none; }
+.kicker { display: inline-flex; align-items: center; gap: .6rem; padding: .55rem 1rem; border-radius: 99rem; background: rgba(255,255,255,.7); -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); box-shadow: inset 0 0 0 1px rgba(20,26,22,.07); font-family: "Geist"; font-weight: 500; font-size: .95rem; letter-spacing: .01em; color: var(--louro); opacity: 0; }
+.kicker .hd { box-shadow: 0 0 0 .25rem rgba(169,227,207,.45); animation: pulse 2.4s var(--ease) infinite; }
+@keyframes pulse { 50% { box-shadow: 0 0 0 .5rem rgba(169,227,207,0); } }
+@keyframes up { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+html[data-page-ready] .kicker { animation: up 1s var(--ease) .9s both; }
+html[data-page-ready] .btn-p { animation: up 1s var(--ease) 1.5s both; }
+.hero .fade { position: absolute; left: 0; right: 0; bottom: 0; height: 22%; background: linear-gradient(rgba(244,245,242,0), var(--porcelana)); pointer-events: none; }
+@media (prefers-reduced-motion: reduce) { html[data-page-ready] .kicker, html[data-page-ready] .btn-p { animation: none; opacity: 1; } .kicker .hd { animation: none; } }
+.cta .txt { position: relative; }
+.cta .draw-box { top: 112%; height: .6em; }
+.arrow { width: 1em; height: 1em; background: var(--louro); color: var(--branco); display: grid; place-items: center; overflow: hidden; border-radius: .15em; }
+.arrow .twin { position: relative; width: .5em; height: .46em; transition: transform .525s cubic-bezier(.175,.885,.32,1.275); }
+.arrow .twin svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+.arrow .twin svg + svg { top: -100%; }
+.cta:hover .arrow .twin { transform: translateY(100%); }
+
+.marquee { position: absolute; left: 0; bottom: 1.75rem; width: 100%; z-index: 2; overflow: hidden; -webkit-mask-image: linear-gradient(90deg, #0000, #000 12%, #000 88%, #0000); mask-image: linear-gradient(90deg, #0000, #000 12%, #000 88%, #0000); }
+.marquee .scroll { display: flex; margin-left: -10%; width: 120%; }
+.marquee .coll { display: flex; flex: none; }
+.mk { display: flex; align-items: center; gap: .7rem; margin: 0 1.6rem; padding: .9rem 0; color: var(--louro); white-space: nowrap; font-family: "Geist"; font-weight: 500; font-size: 1.05rem; letter-spacing: -.01em; }
+.mk span { color: var(--tinta); opacity: .78; }
+.mk::after { content: ""; width: .3rem; height: .3rem; border-radius: 50%; background: var(--latao); margin-left: 2.5rem; opacity: .7; }
+.mk svg { width: 1.6rem; height: 1.6rem; overflow: visible; }
+.mk path, .mk circle, .mk rect, .mk ellipse, .mk line { fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: butt; stroke-linejoin: miter; }
+.mk .fill { fill: currentColor; stroke: none; }
+.mk .acc { fill: var(--latao); stroke: none; }
+@media (max-width: 600px) {
+  .hero { min-height: 32rem; }
+  .hero video { object-position: left top; }
+  .hero .veil { background: linear-gradient(180deg, rgba(244,245,242,.55) 0%, rgba(244,245,242,0) 18%), radial-gradient(120% 55% at 50% 50%, rgba(244,245,242,.9) 35%, rgba(244,245,242,.4) 80%, rgba(244,245,242,.2)); }
+  .hero-content { gap: 1.75rem; margin-top: 0; padding: 0 1rem; }
+  .actions { flex-direction: column; gap: 1rem; }
+  .btn-p { height: 52px; font-size: 16px; padding: 0 1.5rem; }
+  .cta { font-size: 1.2rem; }
+  .kicker { font-size: 13px; }
+  .marquee { bottom: calc(1rem + env(safe-area-inset-bottom)); }
+  .mk { font-size: 14px; gap: .5rem; margin: 0 .9rem; }
+  .mk svg { width: 1.35rem; height: 1.35rem; }
+  .mk::after { margin-left: 1.8rem; }
+}
+
+/* Barra fixa no celular: o contato sempre a um toque */
+.mbar { display: none; }
+@media (max-width: 991px) {
+  .mbar { position: fixed; left: 0; right: 0; bottom: 0; z-index: 60; display: flex; gap: .5rem; padding: .6rem max(1rem, env(safe-area-inset-left)) calc(.6rem + env(safe-area-inset-bottom));
+    background: rgba(244,245,242,.86); -webkit-backdrop-filter: blur(14px) saturate(1.4); backdrop-filter: blur(14px) saturate(1.4); border-top: 1px solid rgba(20,26,22,.08);
+    transform: translateY(110%); transition: transform .5s var(--ease); }
+  .mbar[data-on] { transform: none; }
+  .mbar a { flex: 1; min-height: 48px; border-radius: 99rem; display: flex; align-items: center; justify-content: center; gap: .5rem; font-family: "Geist"; font-weight: 600; font-size: 16px; letter-spacing: -.01em; }
+  .mbar .ra { flex: .7; background: var(--branco); color: var(--tinta); box-shadow: inset 0 0 0 1px rgba(20,26,22,.12); }
+  .mbar .go { background: var(--louro); color: var(--porcelana); }
+  .mbar .go .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--halo); }
+}
+
+/* Títulos de seção */
+.h-sec { font-weight: 700; font-size: 4.8rem; line-height: .9em; letter-spacing: -.055em; }
+.h-team { font-weight: 700; font-size: 7rem; line-height: .9em; letter-spacing: -.055em; }
+.eyebrow-s { font-weight: 300; font-size: 1.75rem; line-height: 1.12em; letter-spacing: -.03em; }
+@media (max-width: 991px) { .h-sec { font-size: 5rem; } .h-team { font-size: 6rem; } }
+@media (max-width: 600px) { .h-sec { font-size: 3.4rem; } .h-team { font-size: 3.9rem; } .eyebrow-s { font-size: 1.3rem; } }
+
+/* 5.5 Do cardápio ao Google: pilha de cards */
+.stack .pin { height: 100vh; display: grid; grid-template-columns: 38fr 62fr; gap: 2rem; padding: 0 3rem 0 5rem; align-items: center; overflow: hidden; }
+.stack .col { display: flex; flex-direction: column; gap: 1.5rem; justify-content: center; }
+.stack .col .eyebrow-s { max-width: 24rem; color: var(--pedra); }
+.stage { position: relative; height: 100%; perspective: 1400px; }
+.stack-root { position: absolute; inset: 0; transform-style: preserve-3d; }
+.slide { position: absolute; aspect-ratio: 1.75; width: min(80vh, 52vw); left: 50%; top: calc(50% - 5vh); translate: -50% -50%; display: block; padding: 1.4cqw; background: var(--frame); border-radius: 1.2rem; container-type: inline-size; overflow: hidden; }
+.slide { padding: 1.75vh; }
+.slide .crop { position: absolute; inset: 1.75vh; overflow: hidden; border-radius: .7rem; background: var(--mesa); }
+.slide .crop img { width: 100%; height: 100%; object-fit: cover; }
+.slide .shade { position: absolute; inset: 1.75vh; border-radius: .7rem; background: linear-gradient(#0000 30%, rgba(20,26,22,.78)); pointer-events: none; }
+.slide .copy { position: absolute; left: 5.5cqw; right: 5.5cqw; bottom: 5.5cqw; display: grid; gap: 1.6cqw; color: var(--porcelana); text-shadow: 0 .05em .4em rgba(0,0,0,.3); }
+.slide .title { font-weight: 700; font-size: 7.4cqw; line-height: .9; letter-spacing: -.05em; }
+.slide .msg { font-family: "Geist"; font-weight: 500; font-size: 2.6cqw; line-height: 1.3; letter-spacing: -.01em; max-width: 30em; opacity: .95; }
+.slide .num { position: absolute; left: 5.5cqw; top: 5.5cqw; font-family: "Geist"; font-weight: 500; font-size: 1.9cqw; letter-spacing: .04em; color: var(--porcelana); opacity: .85; }
+/* Mockups desenhados no próprio card (medidas em cqw, valem em qualquer tela) */
+.ui { position: absolute; font-family: "Geist"; color: var(--tinta); font-size: 1.9cqw; line-height: 1.25; }
+.glass { background: rgba(255,255,255,.9); -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); border-radius: 1.6cqw; box-shadow: 0 1.4cqw 3.6cqw -1.6cqw rgba(20,26,22,.45); }
+.chip { display: inline-flex; align-items: center; gap: .6em; padding: .65em 1em; border-radius: 99em; font-weight: 600; }
+.chip .hd { width: .7em; height: .7em; border-radius: 50%; background: var(--halo); box-shadow: 0 0 0 .3em rgba(169,227,207,.35); }
+.ui-ra { inset: 0; pointer-events: none; }
+.ui-ra .ring { position: absolute; left: 50%; top: 42%; width: 62cqw; translate: -50% -50%; overflow: visible; }
+.ui-ra .ring ellipse { fill: none; stroke: var(--halo); stroke-width: 2.4; }
+.ui-ra .ring .r2 { stroke-width: 1.2; opacity: .6; stroke-dasharray: 4 6; }
+.ui-ra .chip { position: absolute; right: 4.5cqw; top: 4.5cqw; }
+.ui-ra .size { position: absolute; right: 5cqw; top: 5cqw; font-family: "Geist"; font-weight: 500; font-size: 1.7cqw; padding: .5em .8em; border-radius: 99em; background: var(--tinta); color: var(--halo); }
+.panel { right: 4.5cqw; top: 4.5cqw; width: 34cqw; padding: 2.2cqw; display: grid; gap: 1.1cqw; }
+.panel .row { display: grid; grid-template-columns: 1fr auto auto; align-items: center; gap: 1.4cqw; font-weight: 500; }
+.panel .row i { width: 4cqw; height: 2.3cqw; border-radius: 99em; background: rgba(20,26,22,.18); position: relative; }
+.panel .row i::after { content: ""; position: absolute; top: .3cqw; left: .3cqw; width: 1.7cqw; height: 1.7cqw; border-radius: 50%; background: #fff; }
+.panel .row i.on { background: var(--louro); } .panel .row i.on::after { left: auto; right: .3cqw; }
+.panel .saved { display: flex; align-items: center; gap: .5em; color: var(--louro); font-weight: 600; font-size: 1.6cqw; }
+.panel .saved i { width: .6em; height: .6em; border-radius: 50%; background: var(--halo); }
+.panel .t-h { display: flex; justify-content: space-between; font-family: "Geist"; font-weight: 500; font-size: 1.5cqw; color: var(--pedra); letter-spacing: .03em; }
+.browser { right: 4.5cqw; top: 4.5cqw; width: 38cqw; overflow: hidden; }
+.browser .bar { display: flex; align-items: center; gap: .5cqw; padding: 1.1cqw 1.4cqw; background: var(--mesa); }
+.browser .bar i { width: .9cqw; height: .9cqw; border-radius: 50%; background: rgba(20,26,22,.22); }
+.browser .bar span { margin-left: 1cqw; flex: 1; background: var(--branco); border-radius: 99em; padding: .25em .8em; font-size: 1.45cqw; color: var(--pedra); }
+.browser .page { padding: 2.2cqw 2.4cqw 2.6cqw; display: grid; gap: 1.2cqw; }
+.browser .brand { font-family: "Sora"; font-weight: 300; font-size: 3.6cqw; letter-spacing: -.05em; line-height: 1; }
+.browser .menu { display: flex; gap: 1.6cqw; font-size: 1.45cqw; color: var(--pedra); }
+.browser .cta-s { justify-self: start; background: var(--tinta); color: var(--porcelana); border-radius: 99em; padding: .55em 1.1em; font-weight: 600; font-size: 1.5cqw; }
+.plaque { right: 4.5cqw; top: 4.5cqw; width: 22cqw; aspect-ratio: 1; border-radius: 3cqw; background: var(--louro); color: var(--porcelana); display: grid; place-items: center; align-content: center; gap: 1.4cqw; padding: 2cqw; text-align: center; box-shadow: 0 2cqw 4cqw -2cqw rgba(0,0,0,.5), inset 0 0 0 .3cqw rgba(255,255,255,.08); }
+.plaque svg { width: 8cqw; height: 8cqw; }
+.plaque .wave { width: 6cqw; height: 4cqw; color: var(--halo); }
+.plaque b { font-family: "Sora"; font-weight: 600; font-size: 2.1cqw; letter-spacing: -.02em; line-height: 1.1; }
+.plaque small { font-size: 1.4cqw; opacity: .75; }
+.review { right: 4.5cqw; top: 4.5cqw; width: 30cqw; padding: 2.2cqw; display: grid; gap: .9cqw; }
+.review .stars { color: var(--latao); letter-spacing: .12em; font-size: 2.6cqw; line-height: 1; }
+.review .score { font-family: "Sora"; font-weight: 600; font-size: 4.4cqw; letter-spacing: -.05em; line-height: 1; }
+.review small { color: var(--pedra); font-size: 1.5cqw; }
+.review .ig { display: flex; align-items: center; gap: .5em; margin-top: .6cqw; padding-top: 1cqw; border-top: 1px solid rgba(20,26,22,.1); font-weight: 600; font-size: 1.6cqw; }
+.review .ig svg { width: 1.3em; height: 1.3em; }
+
+.badge { position: absolute; right: 1rem; bottom: 1rem; width: 9rem; height: 9rem; z-index: 5; }
+.badge svg { width: 100%; height: 100%; overflow: visible; }
+@media (max-width: 991px) {
+  .stack .pin { height: auto; grid-template-columns: 1fr; padding: 6rem 1.5rem 4rem; gap: 2.5rem; overflow: visible; }
+  .stage { height: auto; perspective: none; }
+  .stack-root { position: relative; display: grid; gap: 1.25rem; }
+  .slide { position: relative; width: 100%; left: auto; top: auto; translate: none; padding: .55rem; border-radius: 1rem; }
+  .slide .crop, .slide .shade { inset: .55rem; border-radius: .6rem; }
+  .badge { display: none; }
+}
+@media (max-width: 600px) {
+  .stack .pin { padding: 4.5rem 1rem 3rem; gap: 2rem; }
+  .slide .copy { left: 6cqw; right: 6cqw; bottom: 6cqw; gap: 2.4cqw; }
+  .slide .title { font-size: 9cqw; }
+  .slide .msg { font-size: 4.1cqw; }
+  .slide .num { display: none; }
+  .ui { font-size: 2.7cqw; }
+  .panel, .review { width: 44cqw; } .browser { width: 50cqw; } .plaque { width: 30cqw; }
+  .slide { aspect-ratio: 1; }
+  .ui-ra .ring { top: 40%; }
+  .ui-ra .ring { width: 80cqw; }
+}
+
+/* 5.6 Na sua mesa: título fixo, tema escuro, pratos subindo */
+.flock { position: relative; height: 340vh; overflow-x: clip; transition: color .7s var(--ease); }
+html[data-theme="dark"] { --page: var(--tinta); }
+html[data-theme="dark"] .flock { color: var(--porcelana); }
+html[data-theme="dark"] .mbar { background: rgba(20,26,22,.82); border-top-color: rgba(244,245,242,.08); }
+.logo { transition: color .7s var(--ease); }
+.flock .sticky { position: sticky; top: 0; height: 100vh; height: 100svh; display: grid; place-items: center; z-index: 1; }
+.flock-title { position: relative; display: flex; flex-direction: column; align-items: center; gap: 1.4rem; text-align: center; }
+.flock-title .para { max-width: 26rem; color: var(--salvia); }
+.stamp { position: absolute; width: 10rem; left: -3rem; top: -8rem; rotate: -10deg; z-index: 3; }
+.stamp svg { width: 100%; overflow: visible; }
+.photos { position: absolute; inset: 0; z-index: 2; pointer-events: none; }
+.ph { position: absolute; width: var(--w); top: var(--top); rotate: var(--r); pointer-events: auto; will-change: transform; }
+.ph.l { left: var(--o); } .ph.r { right: var(--o); }
+.ph .pic { aspect-ratio: 4 / 5; overflow: hidden; border-radius: .6rem; background: #2A332D; box-shadow: 0 2rem 3rem -1.8rem rgba(0,0,0,.6); }
+.ph .pic img { width: 100%; height: 100%; object-fit: cover; }
+.ph .mv { position: relative; }
+.ph .name { position: absolute; left: 50%; bottom: -.9rem; translate: -50% 0; rotate: var(--nr); white-space: nowrap; font-family: "Sora"; font-weight: 800; font-size: 2.4rem; letter-spacing: -.04em; line-height: 1; color: var(--porcelana); -webkit-text-stroke: .32rem var(--louro); paint-order: stroke fill; }
+.ph .tag { position: absolute; left: .7rem; bottom: .7rem; display: inline-flex; align-items: center; gap: .45em; background: var(--porcelana); color: var(--tinta); font-family: "Geist"; font-weight: 600; font-size: .95rem; padding: .35em .7em; border-radius: 99em; }
+.ph .tag i { width: .55em; height: .55em; border-radius: 50%; background: var(--halo); box-shadow: 0 0 0 .25em rgba(169,227,207,.4); }
+@media (max-width: 991px) { .flock { height: 260vh; } }
+@media (max-width: 600px) {
+  .flock-title { padding: 0 1.5rem; }
+  .stamp { width: 6rem; left: 0; top: -5rem; }
+  .ph { width: 7rem; top: var(--mtop); }
+  .ph.l { left: var(--mo); } .ph.r { right: var(--mo); }
+  .ph .name { font-size: 1.5rem; -webkit-text-stroke-width: .22rem; bottom: -.6rem; }
+  .ph .tag { font-size: max(11px, .68rem); left: .4rem; bottom: .4rem; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .flock { height: auto; }
+  .flock .sticky { position: relative; height: auto; padding: 8rem 1.5rem 4rem; }
+  .photos { position: relative; display: grid; grid-template-columns: repeat(auto-fill, minmax(14rem, 1fr)); gap: 2rem; padding: 2rem; }
+  .ph { position: relative; width: auto; top: auto; left: auto; right: auto; }
+}
+/* Demonstração em RA */
+.demo { padding: 8rem 5rem 8rem; }
+.demo-in { display: grid; grid-template-columns: 40fr 60fr; grid-template-areas: "head viewer" "side viewer"; gap: 2.5rem 4rem; align-items: start; max-width: 90rem; margin: 0 auto; }
+.demo-head { grid-area: head; display: flex; flex-direction: column; gap: 1.5rem; }
+.demo-head .eyebrow-s { color: var(--pedra); }
+.viewer { grid-area: viewer; position: relative; aspect-ratio: 5 / 4; border-radius: 1.75rem; background: radial-gradient(80% 70% at 50% 40%, #EEF1EC, var(--mesa)); overflow: hidden; }
+.viewer model-viewer { width: 100%; height: 100%; --poster-color: transparent; position: relative; z-index: 1; }
+.viewer .ring { position: absolute; left: 50%; bottom: 16%; width: 60%; aspect-ratio: 3 / 1; translate: -50% 0; border-radius: 50%; border: 2px solid var(--halo); box-shadow: 0 0 0 .6rem rgba(169,227,207,.18); }
+.v-hint { position: absolute; left: 1.25rem; top: 1.25rem; z-index: 2; font-family: "Geist"; font-size: .95rem; pointer-events: none; }
+.v-load { position: absolute; left: 50%; bottom: 1.4rem; translate: -50% 0; width: 8rem; height: 3px; border-radius: 3px; background: rgba(20,26,22,.1); overflow: hidden; z-index: 2; transition: opacity .4s; }
+.v-load span { display: block; height: 100%; width: var(--p, 0%); background: var(--louro); transition: width .3s; }
+.v-load[data-done] { opacity: 0; }
+.demo-side { grid-area: side; display: grid; gap: 1.75rem; }
+.dish-now { display: grid; gap: .35rem; font-family: "Geist"; }
+.dish-now h3 { font-family: "Sora"; font-weight: 600; font-size: 1.9rem; letter-spacing: -.035em; }
+.dish-now p { color: var(--pedra); font-size: 1.05rem; }
+.dish-now .data { color: var(--tinta); font-weight: 500; font-variant-numeric: tabular-nums; }
+.dishes { display: grid; grid-template-columns: repeat(3, 1fr); gap: .6rem; }
+.dishes button { display: grid; justify-items: center; gap: .35rem; padding: .7rem .4rem .8rem; border: 0; border-radius: 1rem; background: var(--branco); cursor: pointer; font-family: "Geist"; font-weight: 500; font-size: .95rem; color: var(--tinta); box-shadow: inset 0 0 0 1px rgba(20,26,22,.08); transition: box-shadow .25s var(--ease), transform .25s var(--ease); min-height: 44px; }
+.dishes button img { width: 3.6rem; height: 3.6rem; object-fit: contain; }
+.dishes button:hover { transform: translateY(-2px); }
+.dishes [aria-checked="true"] { box-shadow: inset 0 0 0 2px var(--louro); }
+.btn-p.wide { width: 100%; justify-content: center; border: 0; cursor: pointer; }
+.btn-p[disabled] { opacity: .55; cursor: default; transform: none; }
+.qr { display: grid; grid-template-columns: 8rem 1fr; gap: 1.25rem; align-items: center; font-family: "Geist"; font-size: 1rem; line-height: 1.4; color: var(--pedra); }
+.qr b { color: var(--tinta); font-weight: 600; display: block; }
+.qr-code { width: 8rem; height: 8rem; padding: .5rem; border-radius: .9rem; background: #fff; box-shadow: inset 0 0 0 1px rgba(20,26,22,.08); }
+.qr-code svg { width: 100%; height: 100%; display: block; }
+.demo .note { font-family: "Geist"; font-size: .95rem; line-height: 1.45; color: var(--pedra); }
+@media (max-width: 991px) {
+  .demo { padding: 6rem 1.5rem; }
+  .demo-in { grid-template-columns: 1fr; grid-template-areas: "head" "viewer" "side"; gap: 2rem; }
+}
+@media (max-width: 600px) {
+  .demo { padding: 4.5rem 1rem 5rem; }
+  .viewer { aspect-ratio: 4 / 5; border-radius: 1.25rem; }
+  .v-hint { left: .8rem; top: .8rem; font-size: 13px; }
+  .dish-now h3 { font-size: 1.6rem; }
+  .dish-now p { font-size: 15px; }
+  .dishes { gap: .45rem; }
+  .dishes button { font-size: 12.5px; padding: .55rem .2rem .65rem; border-radius: .8rem; }
+  .dishes button img { width: 3rem; height: 3rem; }
+  .demo .note { font-size: 14px; }
+}
+
+/* Contato */
+.contato { background: var(--louro); color: var(--porcelana); padding: 8rem 5rem 2rem; }
+.c-in { display: grid; grid-template-columns: 1fr 1fr; gap: 4rem; max-width: 90rem; margin: 0 auto; align-items: start; }
+.c-copy { display: flex; flex-direction: column; gap: 1.5rem; }
+.c-copy .eyebrow-s { color: var(--salvia); }
+.c-para { font-family: "Geist"; font-size: 1.25rem; line-height: 1.45; color: rgba(244,245,242,.82); max-width: 28rem; }
+.c-points { list-style: none; display: grid; gap: .8rem; font-family: "Geist"; font-weight: 500; font-size: 1.1rem; margin-top: .5rem; }
+.c-points li { display: flex; align-items: center; gap: .8rem; }
+.c-form { display: grid; gap: 1rem; padding: 2rem; border-radius: 1.5rem; background: rgba(244,245,242,.06); box-shadow: inset 0 0 0 1px rgba(244,245,242,.12); }
+.c-form > label { display: grid; gap: .45rem; font-family: "Geist"; font-weight: 500; font-size: .95rem; color: rgba(244,245,242,.8); }
+.c-form input:not([type="checkbox"]) { height: 52px; padding: 0 1rem; border-radius: .8rem; border: 0; background: var(--porcelana); color: var(--tinta); font: 500 16px "Geist", sans-serif; outline: none; box-shadow: inset 0 0 0 2px transparent; transition: box-shadow .2s; }
+.c-form input:focus { box-shadow: inset 0 0 0 2px var(--halo); }
+.c-form fieldset { border: 0; display: grid; gap: .6rem; }
+.c-form legend { font-family: "Geist"; font-weight: 500; font-size: .95rem; color: rgba(244,245,242,.8); margin-bottom: .6rem; }
+.pick { display: flex; flex-wrap: wrap; gap: .5rem; }
+.pick label { position: relative; cursor: pointer; }
+.pick input { position: absolute; opacity: 0; inset: 0; cursor: pointer; }
+.pick span { display: inline-flex; align-items: center; min-height: 44px; padding: 0 1rem; border-radius: 99rem; font-family: "Geist"; font-weight: 500; font-size: 15px; box-shadow: inset 0 0 0 1px rgba(244,245,242,.35); transition: background-color .2s, color .2s; }
+.pick input:checked + span { background: var(--halo); color: var(--tinta); box-shadow: none; }
+.pick input:focus-visible + span { outline: 2px solid var(--latao); outline-offset: 2px; }
+.btn-p.light { background: var(--porcelana); color: var(--louro); margin-top: .5rem; height: 56px; }
+.btn-p.light:hover { background: #fff; }
+.btn-p svg { width: 1.3rem; height: 1.3rem; }
+.c-err { font-family: "Geist"; font-size: .95rem; color: var(--halo); }
+.foot { max-width: 90rem; margin: 6rem auto 0; padding-top: 1.75rem; border-top: 1px solid rgba(244,245,242,.14); display: flex; justify-content: space-between; align-items: center; gap: 1rem; font-family: "Geist"; font-size: .95rem; color: rgba(244,245,242,.7); }
+.foot .logo.small { color: var(--porcelana); font-size: 1.6rem; }
+.foot .logo.small svg { width: 1.7rem; height: 1.7rem; }
+@media (max-width: 991px) {
+  .contato { padding: 6rem 1.5rem 2rem; }
+  .c-in { grid-template-columns: 1fr; gap: 2.5rem; }
+}
+@media (max-width: 600px) {
+  .contato { padding: 4.5rem 1rem calc(6rem + env(safe-area-inset-bottom)); }
+  .c-para { font-size: 16px; }
+  .c-points { font-size: 15px; }
+  .c-form { padding: 1.25rem; border-radius: 1.25rem; }
+  .c-form > label, .c-form legend { font-size: 14px; }
+  .foot { flex-direction: column; align-items: flex-start; gap: .6rem; margin-top: 4rem; font-size: 14px; }
+}
+</style>
+</head>
+<body>
+<div class="wipe" aria-hidden="true"><svg viewBox="0 0 1000 1000" preserveAspectRatio="none"><path d="M43 259C296 11.5688 994 -3 922.994 498.259C851.988 999.517 281.229 1004.28 123 767C-35.2287 529.721 179 259 472 259C765 259 792 498.259 659 654C526 809.741 319 755 285 669.001C251 583.001 299 452 496 452C693 452 876.073 639.171 935 937.001"/></svg></div>
+
+<div class="cursor-label" data-cursor-marquee-status="not-active" aria-hidden="true"><div class="card"><div class="t"><span>Ver em RA →</span><span>Ver em RA →</span></div></div></div>
+
+<header class="nav">
+  <a class="logo" href="#topo" aria-label="previa, início">
+    <svg viewBox="0 0 64 64" aria-hidden="true"><path fill="currentColor" fill-rule="evenodd" d="M5 32a27 27 0 1 0 54 0a27 27 0 1 0 -54 0ZM8 31.2a24 24 0 1 0 48 0a24 24 0 1 0 -48 0ZM15 37a17 17 0 1 0 34 0a17 17 0 1 0 -34 0ZM17.4 36.3a14.6 14.6 0 1 0 29.2 0a14.6 14.6 0 1 0 -29.2 0Z"/><circle cx="32" cy="42" r="7" fill="var(--latao)"/></svg>
+    <span class="word">prev<span class="i">ı</span>a</span>
+  </a>
+  <nav class="pill" aria-label="Seções">
+    <a class="navlink" href="#entrega" data-draw-line>Cardápio em RA<span class="draw-box"></span></a>
+    <a class="navlink" href="#entrega" data-draw-line>Plaquinhas<span class="draw-box"></span></a>
+    <a class="navlink" href="#entrega" data-draw-line>Sites<span class="draw-box"></span></a>
+  </nav>
+  <a class="contact" href="#contato"><span class="dot"></span>Contato</a>
+</header>
+
+<main>
+  <section class="hero" id="topo">
+    <video muted loop playsinline autoplay preload="none" aria-hidden="true" disablepictureinpicture disableremoteplayback
+      data-video-src="img/hero-mesa.mp4" data-video-src-m="img/hero-mesa-m.mp4" data-poster="img/hero-mesa.webp" data-poster-m="img/hero-mesa-m.webp"></video>
+    <div class="veil" aria-hidden="true"></div><div class="fade" aria-hidden="true"></div>
+
+
+    <div class="hero-content">
+      <p class="kicker"><span class="hd" aria-hidden="true"></span>Cardápio em realidade aumentada</p>
+      <h1 class="h-hero" data-text-reveal="chars" data-font-weight-hover data-rest="700" data-near="200" data-radius="400">Veja antes<br />de <span class="alt" data-font-weight-hover data-rest="200" data-near="800" data-radius="400">pedir.</span></h1>
+      <p class="lede" data-text-reveal="lines">Seus pratos em 3D, no tamanho real, em cima da mesa do cliente. Cardápio, site e plaquinhas numa solução só.</p>
+      <div class="actions">
+        <a class="btn-p" href="#demo"><span class="hd" aria-hidden="true"></span>Ver o cardápio em RA</a>
+        <a class="cta" href="#entrega"><span class="txt">Como funciona<span class="draw-box"></span></span>
+        <span class="arrow" aria-hidden="true"><span class="twin">
+          <svg viewBox="0 0 14 13"><path fill="currentColor" d="M12.94 5.7 9.95 8 6.9 10.37l.84 1.86V0h-2.55v12.23l.85-1.86L3 8 0 5.7V9.05l6.47 4.95 6.47-4.95z"/></svg>
+          <svg viewBox="0 0 14 13"><path fill="currentColor" d="M12.94 5.7 9.95 8 6.9 10.37l.84 1.86V0h-2.55v12.23l.85-1.86L3 8 0 5.7V9.05l6.47 4.95 6.47-4.95z"/></svg>
+        </span></span>
+        </a>
+      </div>
+    </div>
+
+    <!-- Faixa: ícones da Previa (grade 24, traço 1,6, terminais retos, elipse 3:1), no lugar de logos de clientes -->
+    <div class="marquee" data-marquee data-direction="left" data-speed="30" data-scroll-speed="10" aria-label="O que a Previa faz">
+      <div class="scroll"><div class="coll">
+        <div class="mk"><svg viewBox="0 0 24 24"><rect x="5" y="3" width="14" height="18"/><line x1="8" y1="8" x2="13" y2="8"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="8" y1="16" x2="14" y2="16"/></svg><span>Cardápio digital</span></div>
+        <div class="mk"><svg viewBox="0 0 24 24"><ellipse cx="12" cy="17" rx="9" ry="3"/><path d="M5 16a7 7 0 0 1 14 0"/><circle class="acc" cx="12" cy="7" r="1.3"/></svg><span>Pratos em 3D</span></div>
+        <div class="mk"><svg viewBox="0 0 24 24"><ellipse cx="12" cy="18" rx="9" ry="3"/><line x1="12" y1="3" x2="12" y2="13"/><path d="M8 9l4 4 4-4"/></svg><span>Ver na mesa</span></div>
+        <div class="mk"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="14" r="5.5"/><circle class="acc" cx="12" cy="16" r="2.2"/></svg><span>Tamanho real</span></div>
+        <div class="mk"><svg viewBox="0 0 24 24"><path d="M4 14c0 2 3.6 4 8 4s8-2 8-4"/><path d="M6 11.5C4.8 12.2 4 13 4 14"/><path d="M18 11.5c1.2.7 2 1.5 2 2.5"/><rect x="9" y="5" width="6" height="6"/><path d="M15 20l-3-2 3-2"/></svg><span>Gire 360°</span></div>
+        <div class="mk"><svg viewBox="0 0 24 24"><path d="M12 3l8 4.5v9L12 21l-8-4.5v-9z"/><path d="M4 7.5l8 4.5 8-4.5"/><line x1="12" y1="12" x2="12" y2="21"/></svg><span>Sem baixar app</span></div>
+        <div class="mk"><svg viewBox="0 0 24 24"><path d="M6 3h12v18l-2-1.5-2 1.5-2-1.5-2 1.5-2-1.5L6 21z"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="9" y1="12" x2="15" y2="12"/></svg><span>Painel do dono</span></div>
+        <div class="mk"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16"/><line x1="3" y1="8.5" x2="21" y2="8.5"/><line x1="6" y1="6.2" x2="7.5" y2="6.2"/><line x1="9" y1="6.2" x2="10.5" y2="6.2"/></svg><span>Site da casa</span></div>
+        <div class="mk"><svg viewBox="0 0 24 24"><path d="M7 8a6 6 0 0 1 0 8"/><path d="M10.5 5.5a10 10 0 0 1 0 13"/><path d="M14 3a14 14 0 0 1 0 18"/></svg><span>Plaquinha NFC</span></div>
+        <div class="mk"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><ellipse cx="12" cy="12" rx="4" ry="9"/><line x1="3" y1="12" x2="21" y2="12"/></svg><span>Em 3 idiomas</span></div>
+      </div></div>
+    </div>
+  </section>
+
+  <section class="stack" id="entrega" data-featured-stack="1.2">
+    <div class="pin">
+      <div class="col" data-scroll-reveal-group>
+        <p class="eyebrow-s" data-scroll-reveal="lines">Tudo o que o seu restaurante precisa no digital, numa solução só.</p>
+        <h2 class="h-sec" data-scroll-reveal="chars" data-font-weight-hover data-rest="700" data-near="200" data-radius="400">Do cardápio <span class="alt" data-font-weight-hover data-rest="200" data-near="800" data-radius="400">ao Google.</span></h2>
+      </div>
+      <div class="stage">
+        <div class="stack-root">
+        <a class="slide" href="#demo" style="--frame: var(--louro)" data-cursor-marquee-text="Ver em RA →" data-scroll-reveal="element">
+          <div class="crop"><img src="img/c-ra.webp" alt="Pizza margherita vista de cima, com o anel de realidade aumentada" loading="lazy" decoding="async" width="928" height="530" /></div>
+          <div class="shade" aria-hidden="true"></div>
+          <div class="ui ui-ra" aria-hidden="true"><svg class="ring" viewBox="0 0 200 80"><ellipse cx="100" cy="40" rx="96" ry="34"/><ellipse class="r2" cx="100" cy="40" rx="84" ry="27"/></svg><span class="chip glass"><span class="hd"></span>Ver na sua mesa</span></div>
+          <span class="num" aria-hidden="true">01 / 05</span>
+          <div class="copy"><h3 class="title">Cardápio em RA</h3><p class="msg">O cliente vê o prato em 3D, no tamanho real, em cima da mesa. Antes de pedir.</p></div>
+        </a>
+        <a class="slide" href="#contato" style="--frame: var(--salvia)" data-cursor-marquee-text="Ver o painel →" data-scroll-reveal="element">
+          <div class="crop"><img src="img/c-pedido.webp" alt="Hambúrguer smash duplo numa tábua" loading="lazy" decoding="async" width="928" height="530" /></div>
+          <div class="shade" aria-hidden="true"></div>
+          <div class="ui panel glass" aria-hidden="true"><div class="t-h"><span>CARDÁPIO</span><span>3 pratos</span></div><div class="row"><span>Smash duplo</span><span>R$ 42</span><i class="on"></i></div><div class="row"><span>Pizza margherita</span><span>R$ 68</span><i class="on"></i></div><div class="row"><span>Petit gâteau</span><span>R$ 32</span><i></i></div><div class="saved"><i></i>Salvo agora</div></div>
+          <span class="num" aria-hidden="true">02 / 05</span>
+          <div class="copy"><h3 class="title">Painel do restaurante</h3><p class="msg">Troque preço, foto e prato em minutos, sem depender de ninguém.</p></div>
+        </a>
+        <a class="slide" href="#contato" style="--frame: var(--tinta)" data-cursor-marquee-text="Ver o site →" data-scroll-reveal="element">
+          <div class="crop"><img src="img/c-site.webp" alt="Risoto de cogumelos visto de cima" loading="lazy" decoding="async" width="928" height="530" /></div>
+          <div class="shade" aria-hidden="true"></div>
+          <div class="ui browser glass" aria-hidden="true"><div class="bar"><i></i><i></i><i></i><span>seurestaurante.com.br</span></div><div class="page"><div class="brand">Seu restaurante</div><div class="menu"><span>Cardápio</span><span>Reservas</span><span>Endereço</span></div><div class="cta-s">Ver cardápio</div></div></div>
+          <span class="num" aria-hidden="true">03 / 05</span>
+          <div class="copy"><h3 class="title">Site da casa</h3><p class="msg">Um site com a cara do seu restaurante, pronto para aparecer no Google.</p></div>
+        </a>
+        <a class="slide" href="#contato" style="--frame: var(--pedra)" data-cursor-marquee-text="Ver a plaquinha →" data-scroll-reveal="element">
+          <div class="crop"><img src="img/c-nfc.webp" alt="Poke de salmão numa tigela branca" loading="lazy" decoding="async" width="928" height="530" /></div>
+          <div class="shade" aria-hidden="true"></div>
+          <div class="ui plaque" aria-hidden="true"><svg viewBox="0 0 64 64"><path fill="currentColor" fill-rule="evenodd" d="M5 32a27 27 0 1 0 54 0a27 27 0 1 0 -54 0ZM8 31.2a24 24 0 1 0 48 0a24 24 0 1 0 -48 0ZM15 37a17 17 0 1 0 34 0a17 17 0 1 0 -34 0ZM17.4 36.3a14.6 14.6 0 1 0 29.2 0a14.6 14.6 0 1 0 -29.2 0Z"/><circle cx="32" cy="42" r="7" fill="var(--latao)"/></svg><svg class="wave" viewBox="0 0 24 16"><path d="M8 3a7 7 0 0 1 0 10M12 1a10 10 0 0 1 0 14M16 0a13 13 0 0 1 0 16" fill="none" stroke="currentColor" stroke-width="1.6"/></svg><b>Aproxime o celular</b></div>
+          <span class="num" aria-hidden="true">04 / 05</span>
+          <div class="copy"><h3 class="title">Plaquinha NFC</h3><p class="msg">Um toque do celular abre o cardápio, o Instagram e a avaliação.</p></div>
+        </a>
+        <a class="slide" href="#contato" style="--frame: var(--louro)" data-cursor-marquee-text="Ver como →" data-scroll-reveal="element">
+          <div class="crop"><img src="img/c-redes.webp" alt="Tiramisù num copo de vidro" loading="lazy" decoding="async" width="928" height="530" /></div>
+          <div class="shade" aria-hidden="true"></div>
+          <div class="ui review glass" aria-hidden="true"><div class="stars">★★★★★</div><div class="score">4,9</div><small>avaliações no Google</small><span class="ig"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none"/></svg>@seurestaurante</span></div>
+          <span class="num" aria-hidden="true">05 / 05</span>
+          <div class="copy"><h3 class="title">Instagram e Google</h3><p class="msg">Mais avaliações e mais seguidores, direto da mesa.</p></div>
+        </a>
+        </div>
+        <div class="badge" aria-hidden="true"><svg viewBox="0 0 200 200"><defs><path id="bp" d="M100 30a70 70 0 1 1 0 140a70 70 0 1 1 0-140"/></defs><circle cx="100" cy="100" r="98" fill="var(--louro)"/><text font-family="Sora" font-weight="700" font-size="22" fill="var(--porcelana)" letter-spacing="1"><textPath href="#bp" textLength="436" lengthAdjust="spacing">VEJA · ANTES · DE · PEDIR ·</textPath></text><g transform="translate(73 73) scale(.85)" color="var(--porcelana)"><path fill="currentColor" fill-rule="evenodd" d="M5 32a27 27 0 1 0 54 0a27 27 0 1 0 -54 0ZM8 31.2a24 24 0 1 0 48 0a24 24 0 1 0 -48 0ZM15 37a17 17 0 1 0 34 0a17 17 0 1 0 -34 0ZM17.4 36.3a14.6 14.6 0 1 0 29.2 0a14.6 14.6 0 1 0 -29.2 0Z"/><circle cx="32" cy="42" r="7" fill="var(--latao)"/></g></svg></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="flock" id="mesa" data-page-theme="dark">
+    <div class="sticky">
+      <div class="flock-title" data-scroll-reveal-group>
+        <div class="stamp" data-momentum aria-hidden="true"><svg viewBox="0 0 220 130"><ellipse cx="110" cy="65" rx="104" ry="58" fill="var(--porcelana)" stroke="var(--louro)" stroke-width="10"/><g transform="rotate(-8 110 65)"><text x="110" y="78" text-anchor="middle" font-family="Sora" font-weight="400" font-size="44" letter-spacing="-2" fill="var(--louro)">previa</text></g></svg></div>
+        <p class="eyebrow-m" data-scroll-reveal="lines">O prato chega antes do garçom</p>
+        <h2 class="h-team" data-scroll-reveal="chars" data-font-weight-hover data-rest="700" data-near="200" data-radius="400"><span class="alt" data-font-weight-hover data-rest="200" data-near="800" data-radius="400">Na</span> sua <span class="alt" data-font-weight-hover data-rest="200" data-near="800" data-radius="400">mesa.</span></h2>
+        <p class="para" data-scroll-reveal="lines">Cada prato vira um modelo 3D. O cliente aponta o celular, vê o tamanho real em cima da mesa e pede com vontade.</p>
+      </div>
+    </div>
+    <div class="photos">
+      <figure class="ph l" style="--o: 2.5vw; --top: 3%; --mtop: 1%; --w: 14rem; --r: -4deg; --mo: -1.25rem;" data-speed="1"><div class="mv" data-momentum><div class="pic"><img src="img/d-margherita.webp" alt="Margherita" loading="lazy" decoding="async" width="560" height="695" /></div><span class="name" style="--nr: -7deg">Margherita</span></div></figure>
+      <figure class="ph l" style="--o: 21vw; --top: 19%; --mtop: 17%; --w: 11rem; --r: 3deg; --mo: 3rem;" data-speed="0.6"><div class="mv" data-momentum><div class="pic"><img src="img/det-pizza.webp" alt="Em RA · mesa 4" loading="lazy" decoding="async" width="560" height="695" /></div><span class="tag"><i></i>Em RA · mesa 4</span></div></figure>
+      <figure class="ph l" style="--o: 3vw; --top: 33%; --mtop: 33%; --w: 13rem; --r: 5deg; --mo: -1.25rem;" data-speed="1.3"><div class="mv" data-momentum><div class="pic"><img src="img/d-smash.webp" alt="Smash" loading="lazy" decoding="async" width="560" height="695" /></div><span class="name" style="--nr: 4deg">Smash</span></div></figure>
+      <figure class="ph l" style="--o: 23vw; --top: 49%; --mtop: 49%; --w: 13.5rem; --r: -3deg; --mo: 3rem;" data-speed="0.8"><div class="mv" data-momentum><div class="pic"><img src="img/d-risoto.webp" alt="Risoto" loading="lazy" decoding="async" width="560" height="695" /></div><span class="name" style="--nr: -5deg">Risoto</span></div></figure>
+      <figure class="ph l" style="--o: 2vw; --top: 64%; --mtop: 65%; --w: 11.5rem; --r: -6deg; --mo: -1.25rem;" data-speed="1.15"><div class="mv" data-momentum><div class="pic"><img src="img/det-smash.webp" alt="Preço atualizado" loading="lazy" decoding="async" width="560" height="695" /></div><span class="tag"><i></i>Preço atualizado</span></div></figure>
+      <figure class="ph l" style="--o: 20vw; --top: 79%; --mtop: 81%; --w: 14rem; --r: 4deg; --mo: 3rem;" data-speed="0.7"><div class="mv" data-momentum><div class="pic"><img src="img/d-pomodoro.webp" alt="Pomodoro" loading="lazy" decoding="async" width="560" height="695" /></div><span class="name" style="--nr: 6deg">Pomodoro</span></div></figure>
+      <figure class="ph r" style="--o: 3vw; --top: 2%; --mtop: 9%; --w: 13.5rem; --r: 4deg; --mo: -1.25rem;" data-speed="0.75"><div class="mv" data-momentum><div class="pic"><img src="img/d-poke.webp" alt="Poke" loading="lazy" decoding="async" width="560" height="695" /></div><span class="name" style="--nr: 5deg">Poke</span></div></figure>
+      <figure class="ph r" style="--o: 22vw; --top: 17%; --mtop: 25%; --w: 11rem; --r: -5deg; --mo: 3rem;" data-speed="1.25"><div class="mv" data-momentum><div class="pic"><img src="img/det-poke.webp" alt="Via NFC" loading="lazy" decoding="async" width="560" height="695" /></div><span class="tag"><i></i>Via NFC</span></div></figure>
+      <figure class="ph r" style="--o: 2.5vw; --top: 32%; --mtop: 41%; --w: 14rem; --r: -3deg; --mo: -1.25rem;" data-speed="0.9"><div class="mv" data-momentum><div class="pic"><img src="img/d-alfredo.webp" alt="Alfredo" loading="lazy" decoding="async" width="560" height="695" /></div><span class="name" style="--nr: -6deg">Alfredo</span></div></figure>
+      <figure class="ph r" style="--o: 23vw; --top: 48%; --mtop: 57%; --w: 13rem; --r: 5deg; --mo: 3rem;" data-speed="1.4"><div class="mv" data-momentum><div class="pic"><img src="img/d-tiramisu.webp" alt="Tiramisù" loading="lazy" decoding="async" width="560" height="695" /></div><span class="name" style="--nr: 4deg">Tiramisù</span></div></figure>
+      <figure class="ph r" style="--o: 3vw; --top: 63%; --mtop: 73%; --w: 11.5rem; --r: 6deg; --mo: -1.25rem;" data-speed="0.65"><div class="mv" data-momentum><div class="pic"><img src="img/det-petit.webp" alt="Avaliar no Google" loading="lazy" decoding="async" width="560" height="695" /></div><span class="tag"><i></i>Avaliar no Google</span></div></figure>
+      <figure class="ph r" style="--o: 20vw; --top: 78%; --mtop: 89%; --w: 14rem; --r: -4deg; --mo: 3rem;" data-speed="1.05"><div class="mv" data-momentum><div class="pic"><img src="img/d-petit.webp" alt="Petit gâteau" loading="lazy" decoding="async" width="560" height="695" /></div><span class="name" style="--nr: -4deg">Petit gâteau</span></div></figure>
+    </div>
+  </section>
+
+  <section class="demo" id="demo">
+    <div class="demo-in">
+      <div class="demo-head" data-scroll-reveal-group>
+        <p class="eyebrow-s" data-scroll-reveal="lines">Experimente agora, com o seu celular.</p>
+        <h2 class="h-sec" data-scroll-reveal="chars" data-font-weight-hover data-rest="700" data-near="200" data-radius="400">Ponha um prato <span class="alt" data-font-weight-hover data-rest="200" data-near="800" data-radius="400">na sua mesa.</span></h2>
+      </div>
+
+      <div class="viewer" data-viewer>
+        <model-viewer data-mv alt="Pizza margherita em 3D" poster="img/poster-pizza-margherita.webp"
+          camera-controls touch-action="pan-y" auto-rotate auto-rotate-delay="800" rotation-per-second="18deg"
+          camera-orbit="-20deg 64deg auto" min-camera-orbit="auto 20deg auto" max-camera-orbit="auto 82deg auto"
+          interaction-prompt="none" shadow-intensity="1" shadow-softness=".85" exposure="1.05" environment-image="neutral"
+          ar ar-modes="webxr scene-viewer quick-look" ar-scale="fixed" ar-placement="floor">
+          <button slot="ar-button" hidden></button>
+        </model-viewer>
+        <div class="ring" aria-hidden="true"></div>
+        <span class="v-hint chip glass" aria-hidden="true"><span class="hd"></span>Gire com o dedo</span>
+        <div class="v-load" data-load aria-hidden="true"><span></span></div>
+      </div>
+
+      <div class="demo-side">
+        <div class="dish-now">
+          <h3 data-f="name">Pizza margherita</h3>
+          <p data-f="detail">Molho de tomate, muçarela de búfala, manjericão</p>
+          <p class="data" data-f="data">29 cm · serve 2 · R$ 68</p>
+        </div>
+        <div class="dishes" role="radiogroup" aria-label="Pratos da demonstração">
+          <button type="button" role="radio" aria-checked="true" data-dish="pizza-margherita"><img src="img/poster-pizza-margherita.webp" alt="" width="64" height="64" loading="lazy" /><span>Margherita</span></button>
+          <button type="button" role="radio" aria-checked="false" data-dish="risoto-funghi"><img src="img/poster-risoto-funghi.webp" alt="" width="64" height="64" loading="lazy" /><span>Risoto</span></button>
+          <button type="button" role="radio" aria-checked="false" data-dish="spaghetti-pomodoro"><img src="img/poster-spaghetti-pomodoro.webp" alt="" width="64" height="64" loading="lazy" /><span>Pomodoro</span></button>
+        </div>
+        <div class="open">
+          <button type="button" class="btn-p wide" data-ar><span class="hd" aria-hidden="true"></span><span data-ar-label>Ver na minha mesa</span></button>
+          <div class="qr" data-qr hidden>
+            <div class="qr-code" data-qr-code role="img" aria-label="QR code para abrir a demonstração no celular"></div>
+            <p><b>Está no computador?</b> Aponte a câmera do celular para o código. O prato abre na sua mesa, em tamanho real.</p>
+          </div>
+        </div>
+        <p class="note">Cardápio de demonstração. No seu, entram os seus pratos, com o nome, as cores e os preços da sua casa. Sem app para o cliente baixar.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="contato" id="contato">
+    <div class="c-in">
+      <div class="c-copy" data-scroll-reveal-group>
+        <p class="eyebrow-s" data-scroll-reveal="lines">Vamos conversar?</p>
+        <h2 class="h-sec" data-scroll-reveal="chars" data-font-weight-hover data-rest="700" data-near="200" data-radius="400">Seu cardápio <span class="alt" data-font-weight-hover data-rest="200" data-near="800" data-radius="400">na mesa do cliente.</span></h2>
+        <p class="c-para" data-scroll-reveal="lines">Conte um pouco do seu restaurante. A gente responde pelo WhatsApp com uma demonstração feita com os seus pratos.</p>
+        <ul class="c-points">
+          <li><span class="hd" aria-hidden="true"></span>Seus pratos em 3D, no tamanho real</li>
+          <li><span class="hd" aria-hidden="true"></span>Sem app para o cliente baixar</li>
+          <li><span class="hd" aria-hidden="true"></span>Site e plaquinhas NFC com a sua marca</li>
+        </ul>
+      </div>
+      <form class="c-form" data-contact novalidate>
+        <label><span>Seu nome</span><input name="nome" autocomplete="name" required /></label>
+        <label><span>Restaurante</span><input name="restaurante" autocomplete="organization" required /></label>
+        <label><span>Cidade</span><input name="cidade" autocomplete="address-level2" /></label>
+        <fieldset>
+          <legend>O que te interessa?</legend>
+          <div class="pick">
+            <label><input type="checkbox" name="interesse" value="Cardápio em RA" checked /><span>Cardápio em RA</span></label>
+            <label><input type="checkbox" name="interesse" value="Site" /><span>Site</span></label>
+            <label><input type="checkbox" name="interesse" value="Plaquinhas NFC" /><span>Plaquinhas NFC</span></label>
+          </div>
+        </fieldset>
+        <button type="submit" class="btn-p light wide"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2Zm0 18.2a8.2 8.2 0 0 1-4.2-1.1l-.3-.2-3 .8.8-2.9-.2-.3A8.2 8.2 0 1 1 12 20.2Zm4.5-6.1c-.2-.1-1.5-.7-1.7-.8-.2-.1-.4-.1-.6.1l-.8 1c-.1.2-.3.2-.5.1a6.7 6.7 0 0 1-3.3-2.9c-.2-.4.2-.4.7-1.3.1-.2 0-.3 0-.4l-.8-1.8c-.2-.5-.4-.4-.6-.4h-.5a1 1 0 0 0-.7.3 3 3 0 0 0-.9 2.2 5.2 5.2 0 0 0 1.1 2.7 11.8 11.8 0 0 0 4.5 4c1.7.7 2.3.8 3.2.6a2.7 2.7 0 0 0 1.8-1.3 2.2 2.2 0 0 0 .2-1.3c-.1-.1-.3-.2-.5-.3Z"/></svg>Chamar no WhatsApp</button>
+        <p class="c-err" data-err hidden>Preencha o seu nome e o nome do restaurante.</p>
+      </form>
+    </div>
+    <footer class="foot">
+      <span class="logo small"><svg viewBox="0 0 64 64" aria-hidden="true"><path fill="currentColor" fill-rule="evenodd" d="M5 32a27 27 0 1 0 54 0a27 27 0 1 0 -54 0ZM8 31.2a24 24 0 1 0 48 0a24 24 0 1 0 -48 0ZM15 37a17 17 0 1 0 34 0a17 17 0 1 0 -34 0ZM17.4 36.3a14.6 14.6 0 1 0 29.2 0a14.6 14.6 0 1 0 -29.2 0Z"/><circle cx="32" cy="42" r="7" fill="var(--latao)"/></svg><span class="word">prev<span class="i">ı</span>a</span></span>
+      <span>Veja antes de pedir.</span>
+      <span>© 2026 Previa</span>
+    </footer>
+  </section>
+</main>
+
+<nav class="mbar" aria-label="Atalhos">
+  <a class="ra" href="#demo">Ver em RA</a>
+  <a class="go" href="#contato"><span class="dot" aria-hidden="true"></span>Quero a Previa</a>
+</nav>
+
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.13.0/dist/gsap.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.13.0/dist/ScrollTrigger.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.13.0/dist/SplitText.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.13.0/dist/DrawSVGPlugin.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.13.0/dist/InertiaPlugin.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/lenis@1.3.17/dist/lenis.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
+<script>
+(() => {
+  const root = document.documentElement;
+  const reveal = () => { root.setAttribute('data-page-ready', ''); document.querySelectorAll('[data-text-reveal],[data-scroll-reveal]').forEach(e => e.style.visibility = 'visible'); const w = document.querySelector('.wipe'); if (w) w.setAttribute('data-transition-ready', ''); };
+  setTimeout(() => { if (!root.hasAttribute('data-page-ready')) reveal(); }, 4000);
+  /* Demonstração em RA: model-viewer carregado só quando a seção se aproxima */
+  function initDemo() {
+    const root = document.querySelector('#demo'); if (!root) return;
+    const DISHES = {
+      'pizza-margherita': { name: 'Pizza margherita', detail: 'Molho de tomate, muçarela de búfala, manjericão', data: '29 cm · serve 2 · R$ 68' },
+      'risoto-funghi': { name: 'Risoto de cogumelos', detail: 'Arbóreo, mix de cogumelos, parmesão, tomilho', data: 'Prato de 28 cm · R$ 62' },
+      'spaghetti-pomodoro': { name: 'Spaghetti al pomodoro', detail: 'Molho de tomate fresco, manjericão', data: 'Prato de 27 cm · R$ 48' }
+    };
+    const mv = root.querySelector('[data-mv]'), arBtn = root.querySelector('[data-ar]'), arLabel = root.querySelector('[data-ar-label]');
+    const qr = root.querySelector('[data-qr]'), load = root.querySelector('[data-load]');
+    const radios = [...root.querySelectorAll('[data-dish]')];
+    const f = k => root.querySelector(`[data-f="${k}"]`);
+    const mobile = matchMedia('(hover: none), (pointer: coarse)').matches && matchMedia('(max-width: 991px)').matches;
+    let current = 'pizza-margherita';
+    const q = new URLSearchParams(location.search).get('prato'); if (q && DISHES[q]) current = q;
+
+    // No celular: botão de RA. No computador: QR code para abrir no celular.
+    arBtn.hidden = !mobile; qr.hidden = mobile;
+    if (mobile) { arBtn.disabled = true; arLabel.textContent = 'Carregando o prato…'; }
+
+    // O .glb vem direto do servidor; onde ele não é servido (prévia), cai para a cópia em base64.
+    const cache = new Map();
+    const modelSrc = id => {
+      if (!cache.has(id)) cache.set(id, fetch(`models/${id}.glb`, { method: 'HEAD' })
+        .then(r => { const t = r.headers.get('content-type') || ''; if (r.ok && !t.includes('html')) return `models/${id}.glb`; throw 0; })
+        .catch(() => fetch(`models/${id}.glb.b64.json`).then(r => r.json()).then(b64 => URL.createObjectURL(new Blob([Uint8Array.from(atob(b64), c => c.charCodeAt(0))], { type: 'model/gltf-binary' })))));
+      return cache.get(id);
+    };
+    let viewer;
+    const loadViewer = () => viewer ??= new Promise((res, rej) => {
+      if (customElements.get('model-viewer')) return res();
+      const s = document.createElement('script'); s.type = 'module';
+      s.src = 'https://cdn.jsdelivr.net/npm/@google/model-viewer@4.0.0/dist/model-viewer.min.js';
+      s.onload = () => customElements.whenDefined('model-viewer').then(res); s.onerror = rej; document.head.appendChild(s);
+    });
+    const drawQr = () => {
+      if (mobile || !window.qrcode) return;
+      const url = new URL(location.href); url.hash = 'demo'; url.search = `?prato=${current}`;
+      const code = qrcode(0, 'M'); code.addData(url.toString()); code.make();
+      root.querySelector('[data-qr-code]').innerHTML = code.createSvgTag({ cellSize: 4, margin: 0, scalable: true });
+    };
+    async function show(id) {
+      current = id; const d = DISHES[id];
+      radios.forEach(r => r.setAttribute('aria-checked', String(r.dataset.dish === id)));
+      f('name').textContent = d.name; f('detail').textContent = d.detail; f('data').textContent = d.data;
+      mv.alt = `${d.name} em 3D`; mv.poster = `img/poster-${id}.webp`;
+      load.removeAttribute('data-done'); load.style.setProperty('--p', '8%');
+      if (mobile) { arBtn.disabled = true; arLabel.textContent = 'Carregando o prato…'; }
+      drawQr();
+      try { await loadViewer(); mv.src = await modelSrc(id); } catch (e) { load.setAttribute('data-done', ''); if (mobile) arLabel.textContent = 'Não foi possível carregar o prato'; }
+    }
+    mv.addEventListener('progress', e => load.style.setProperty('--p', Math.round(e.detail.totalProgress * 100) + '%'));
+    mv.addEventListener('load', () => {
+      load.setAttribute('data-done', '');
+      if (!mobile) return;
+      if (mv.canActivateAR) { arBtn.disabled = false; arLabel.textContent = 'Ver na minha mesa'; }
+      else { arBtn.disabled = true; arLabel.textContent = 'Abra no Chrome ou Safari para ver em RA'; }
+    });
+    arBtn.addEventListener('click', () => mv.activateAR && mv.activateAR());
+    radios.forEach(r => r.addEventListener('click', () => show(r.dataset.dish)));
+    new IntersectionObserver((es, io) => { if (es[0].isIntersecting) { io.disconnect(); show(current); } }, { rootMargin: '800px' }).observe(root);
+  }
+
+  /* Contato: abre o WhatsApp com a mensagem pronta */
+  const WHATSAPP = ''; // número da Previa com DDI e DDD, só dígitos (ex.: 5511999999999)
+  function initContact() {
+    const form = document.querySelector('[data-contact]'); if (!form) return;
+    const err = form.querySelector('[data-err]');
+    form.addEventListener('submit', e => {
+      e.preventDefault();
+      const d = new FormData(form); const nome = (d.get('nome') || '').trim(), rest = (d.get('restaurante') || '').trim();
+      if (!nome || !rest) { err.hidden = false; (nome ? form.restaurante : form.nome).focus(); return; }
+      err.hidden = true;
+      const cidade = (d.get('cidade') || '').trim(); const ints = d.getAll('interesse');
+      const msg = `Olá, Previa! Sou ${nome}, do ${rest}${cidade ? ` (${cidade})` : ''}. Quero saber mais sobre: ${ints.length ? ints.join(', ') : 'a Previa'}.`;
+      window.open(`https://wa.me/${WHATSAPP}?text=${encodeURIComponent(msg)}`, '_blank', 'noopener');
+    });
+  }
+
+  initDemo(); initContact();
+
+  if (!window.gsap) { const v = document.querySelector('.hero video'); if (v) v.poster = matchMedia('(max-aspect-ratio: 1/1)').matches ? v.dataset.posterM : v.dataset.poster; reveal(); return; }
+
+  gsap.registerPlugin(ScrollTrigger, SplitText, DrawSVGPlugin, InertiaPlugin);
+  const mqReduce = matchMedia('(prefers-reduced-motion: reduce)');
+  const reduce = mqReduce.matches;
+  const fine = matchMedia('(hover: hover) and (pointer: fine)').matches;
+  const touch = matchMedia('(hover: none), (pointer: coarse)').matches;
+  const clamp = (a, b, v) => Math.min(b, Math.max(a, v));
+
+  /* 6.1 Rolagem suave */
+  let lenis = null;
+  if (!reduce && window.Lenis) {
+    lenis = new Lenis({ lerp: 0.165, wheelMultiplier: 1.25 });
+    gsap.ticker.add(t => lenis.raf(t * 1000));
+    lenis.on('scroll', ScrollTrigger.update);
+    gsap.ticker.lagSmoothing(0);
+  }
+  document.querySelectorAll('a[href^="#"]').forEach(a => a.addEventListener('click', e => {
+    const t = document.querySelector(a.getAttribute('href')); if (!t) return;
+    e.preventDefault();
+    if (lenis) lenis.scrollTo(t, { duration: 1.4 }); else t.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth' });
+  }));
+
+  /* Vídeo do topo: corte retrato no celular, só com movimento liberado e sem economia de dados */
+  const video = document.querySelector('.hero video');
+  const mqPortrait = matchMedia('(max-aspect-ratio: 1/1)');
+  const saveData = !!(navigator.connection && navigator.connection.saveData);
+  const setVideo = () => {
+    const m = mqPortrait.matches;
+    video.poster = m ? video.dataset.posterM : video.dataset.poster;
+    const src = m ? video.dataset.videoSrcM : video.dataset.videoSrc;
+    if (mqReduce.matches || saveData || !src) { video.pause(); video.removeAttribute('src'); video.load(); return; }
+    if (video.getAttribute('src') !== src) { video.src = src; }
+    video.play().catch(() => {});
+  };
+  setVideo(); mqReduce.addEventListener('change', setVideo); mqPortrait.addEventListener('change', setVideo);
+  document.addEventListener('visibilitychange', () => { if (document.hidden) video.pause(); else if (video.getAttribute('src')) video.play().catch(() => {}); });
+
+  /* 6.3 Revelação de texto ao carregar */
+  function splitFor(el, mode) {
+    const hasHover = el.hasAttribute('data-font-weight-hover');
+    const s = SplitText.create(el, { type: mode === 'chars' ? 'chars,words,lines' : 'lines,words', linesClass: 'line', charsClass: 'char', mask: 'lines', autoSplit: !hasHover });
+    el._split = s; return s;
+  }
+  function textReveal(baseDelay) {
+    const els = [...document.querySelectorAll('[data-text-reveal]')];
+    const groupIndex = new Map();
+    els.forEach(el => {
+      const mode = el.dataset.textReveal;
+      const g = el.closest('[data-text-reveal-group]');
+      let extra = 0;
+      if (g) { const n = groupIndex.get(g) || 0; extra = n * 0.12; groupIndex.set(g, n + 1); }
+      const s = splitFor(el, mode);
+      el.style.visibility = 'visible';
+      const targets = mode === 'chars' ? s.chars : s.lines;
+      gsap.from(targets, { yPercent: 135, duration: 1, ease: 'expo.out', stagger: mode === 'chars' ? 0.07 * 0.25 : 0.07, delay: baseDelay + extra,
+        onComplete: () => el.dispatchEvent(new CustomEvent('reveal:done')) });
+    });
+  }
+
+  /* 6.5 Sublinhado desenhado à mão */
+  const LINES = [
+    'M5 20.9999C26.7762 16.2245 49.5532 11.5572 71.7979 14.6666C84.9553 16.5057 97.0392 21.8432 109.987 24.3888C116.413 25.6523 123.012 25.5143 129.042 22.6388C135.981 19.3303 142.586 15.1422 150.092 13.3333C156.799 11.7168 161.702 14.6225 167.887 16.8333C181.562 21.7212 194.975 22.6234 209.252 21.3888C224.678 20.0548 239.912 17.991 255.42 18.3055C272.027 18.6422 288.409 18.867 305 17.9999',
+    'M5 24.2592C26.233 20.2879 47.7083 16.9968 69.135 13.8421C98.0469 9.5853 128.407 4.02322 158.059 5.14674C172.583 5.69708 187.686 8.66104 201.598 11.9696C207.232 13.3093 215.437 14.9471 220.137 18.3619C224.401 21.4596 220.737 25.6575 217.184 27.6168C208.309 32.5097 197.199 34.281 186.698 34.8486C183.159 35.0399 147.197 36.2657 155.105 26.5837C158.11 22.9053 162.993 20.6229 167.764 18.7924C178.386 14.7164 190.115 12.1115 201.624 10.3984C218.367 7.90626 235.528 7.06127 252.521 7.49276C258.455 7.64343 264.389 7.92791 270.295 8.41825C280.321 9.25056 296 10.8932 305 13.0242',
+    'M5 29.5014C9.61174 24.4515 12.9521 17.9873 20.9532 17.5292C23.7742 17.3676 27.0987 17.7897 29.6575 19.0014C33.2644 20.7093 35.6481 24.0004 39.4178 25.5014C48.3911 29.0744 55.7503 25.7731 63.3048 21.0292C67.9902 18.0869 73.7668 16.1366 79.3721 17.8903C85.1682 19.7036 88.2173 26.2464 94.4121 27.2514C102.584 28.5771 107.023 25.5064 113.276 20.6125C119.927 15.4067 128.83 12.3333 137.249 15.0014C141.418 16.3225 143.116 18.7528 146.581 21.0014C149.621 22.9736 152.78 23.6197 156.284 24.2514C165.142 25.8479 172.315 17.5185 179.144 13.5014C184.459 10.3746 191.785 8.74853 195.868 14.5292C199.252 19.3205 205.597 22.9057 211.621 22.5014C215.553 22.2374 220.183 17.8356 222.979 15.5569C225.4 13.5845 227.457 11.1105 230.742 10.5292C232.718 10.1794 234.784 12.9691 236.164 14.0014C238.543 15.7801 240.717 18.4775 243.356 19.8903C249.488 23.1729 255.706 21.2551 261.079 18.0014C266.571 14.6754 270.439 11.5202 277.146 13.6125C280.725 14.7289 283.221 17.209 286.393 19.0014C292.321 22.3517 298.255 22.5014 305 22.5014',
+    'M17.0039 32.6826C32.2307 32.8412 47.4552 32.8277 62.676 32.8118C67.3044 32.807 96.546 33.0555 104.728 32.0775C113.615 31.0152 104.516 28.3028 102.022 27.2826C89.9573 22.3465 77.3751 19.0254 65.0451 15.0552C57.8987 12.7542 37.2813 8.49399 44.2314 6.10216C50.9667 3.78422 64.2873 5.81914 70.4249 5.96641C105.866 6.81677 141.306 7.58809 176.75 8.59886C217.874 9.77162 258.906 11.0553 300 14.4892',
+    'M4.99805 20.9998C65.6267 17.4649 126.268 13.845 187.208 12.8887C226.483 12.2723 265.751 13.2796 304.998 13.9998',
+    'M5 29.8857C52.3147 26.9322 99.4329 21.6611 146.503 17.1765C151.753 16.6763 157.115 15.9505 162.415 15.6551C163.28 15.6069 165.074 15.4123 164.383 16.4275C161.704 20.3627 157.134 23.7551 153.95 27.4983C153.209 28.3702 148.194 33.4751 150.669 34.6605C153.638 36.0819 163.621 32.6063 165.039 32.2029C178.55 28.3608 191.49 23.5968 204.869 19.5404C231.903 11.3436 259.347 5.83254 288.793 5.12258C294.094 4.99476 299.722 4.82265 305 5.45025'
+  ];
+  let lineIdx = Math.floor(Math.random() * LINES.length);
+  const makeLine = box => {
+    box.innerHTML = `<svg viewBox="0 0 310 40" preserveAspectRatio="none"><path d="${LINES[lineIdx++ % LINES.length]}" fill="none" stroke="currentColor" stroke-width="10" stroke-linecap="round"/></svg>`;
+    return box.querySelector('path');
+  };
+  function initDrawLines() {
+    document.querySelectorAll('[data-draw-line]').forEach(link => {
+      const box = link.querySelector('.draw-box'); let tween = null; let leaving = false;
+      link.addEventListener('mouseenter', () => {
+        leaving = false;
+        const p = makeLine(box);
+        gsap.set(p, { drawSVG: '0%' });
+        tween = gsap.to(p, { drawSVG: '100%', duration: 0.5, ease: 'power2.inOut' });
+      });
+      link.addEventListener('mouseleave', () => {
+        leaving = true;
+        const p = box.querySelector('path'); if (!p) return;
+        const out = () => { if (!leaving) return; gsap.to(p, { drawSVG: '100% 100%', duration: 0.5, ease: 'power2.inOut', onComplete: () => { if (leaving) box.innerHTML = ''; } }); };
+        if (tween && tween.isActive()) tween.eventCallback('onComplete', out); else out();
+      });
+    });
+  }
+  function drawAlways(el, delay) {
+    const box = el.querySelector('.draw-box'); const p = makeLine(box);
+    if (reduce) return;
+    gsap.fromTo(p, { drawSVG: '0%' }, { drawSVG: '100%', duration: 0.6, ease: 'power2.inOut', delay });
+  }
+
+  /* 6.6 Peso da fonte segue o cursor */
+  function initFontWeightHover() {
+    if (touch || reduce) return;
+    const roots = [...document.querySelectorAll('[data-font-weight-hover]')].filter(el => !el.parentElement.closest('[data-font-weight-hover]'));
+    const items = [];
+    const pointer = { x: -9999, y: -9999 };
+    const measure = () => items.forEach(it => { const r = it.ch.getBoundingClientRect(); it.cx = r.left + scrollX + r.width / 2; it.cy = r.top + scrollY + r.height / 2; });
+    const setup = chars => {
+      chars.forEach(ch => {
+        const host = ch.closest('[data-font-weight-hover]');
+        const rest = +host.dataset.rest, near = +host.dataset.near, radius = +host.dataset.radius;
+        ch.style.setProperty('--wght', rest);
+        ch.style.fontVariationSettings = "'wght' var(--wght)";
+        items.push({ ch, rest, near, radius, cur: rest, q: gsap.quickTo(ch, '--wght', { duration: 0.4, ease: 'power2.out' }) });
+      });
+      measure();
+    };
+    roots.forEach(r => {
+      if (r.hasAttribute('data-text-reveal') || r.hasAttribute('data-scroll-reveal')) r.addEventListener('reveal:done', () => setup(r._split.chars), { once: true });
+      else setup(SplitText.create(r, { type: 'chars,words', autoSplit: false }).chars);
+    });
+    addEventListener('pointermove', e => { pointer.x = e.clientX + scrollX; pointer.y = e.clientY + scrollY; }, { passive: true });
+    let lastY = scrollY;
+    addEventListener('scroll', () => { pointer.y += scrollY - lastY; lastY = scrollY; measure(); }, { passive: true });
+    addEventListener('resize', measure);
+    gsap.ticker.add(() => {
+      for (const it of items) {
+        const d = Math.hypot(pointer.x - it.cx, pointer.y - it.cy);
+        const f = d >= it.radius ? 0 : 1 - d / it.radius;
+        const lo = Math.min(it.rest, it.near), hi = Math.max(it.rest, it.near);
+        const t = clamp(lo, hi, it.rest + (it.near - it.rest) * f);
+        if (Math.abs(t - it.cur) >= 1) { it.cur = t; it.q(t); }
+      }
+    });
+  }
+
+  /* No toque não há cursor: o peso da fonte passa como uma onda depois da revelação e a cada toque no título */
+  function initTouchWeight() {
+    if (!touch || reduce) return;
+    const h = document.querySelector('.h-hero'); if (!h) return;
+    const host = ch => ch.closest('[data-font-weight-hover]');
+    const wave = () => {
+      const chars = h._split ? h._split.chars : []; if (!chars.length) return;
+      chars.forEach(ch => { ch.style.fontVariationSettings = "'wght' var(--wght)"; if (!ch.style.getPropertyValue('--wght')) ch.style.setProperty('--wght', host(ch).dataset.rest); });
+      gsap.timeline()
+        .to(chars, { '--wght': i => +host(chars[i]).dataset.near, duration: 0.45, ease: 'sine.inOut', stagger: 0.045, overwrite: true })
+        .to(chars, { '--wght': i => +host(chars[i]).dataset.rest, duration: 0.6, ease: 'sine.inOut', stagger: 0.045 }, 0.35);
+    };
+    h.addEventListener('reveal:done', () => setTimeout(wave, 250), { once: true });
+    h.addEventListener('click', wave);
+  }
+
+  /* Barra fixa do celular aparece depois do topo */
+  function initMobileBar() {
+    const bar = document.querySelector('.mbar'); if (!bar) return;
+    const nav = document.querySelector('.nav');
+    ScrollTrigger.create({ start: 40, onEnter: () => nav.setAttribute('data-scrolled', ''), onLeaveBack: () => nav.removeAttribute('data-scrolled') });
+    let past = false, inContact = false;
+    const sync = () => bar.toggleAttribute('data-on', past && !inContact);
+    ScrollTrigger.create({ trigger: '.hero', start: 'bottom 85%', onEnter: () => { past = true; sync(); }, onLeaveBack: () => { past = false; sync(); } });
+    ScrollTrigger.create({ trigger: '#contato', start: 'top 75%', onEnter: () => { inContact = true; sync(); }, onLeaveBack: () => { inContact = false; sync(); } });
+  }
+
+  /* 6.4 Revelação ao rolar */
+  function initScrollReveal() {
+    const done = new Set();
+    const anim = (el, tl, at) => {
+      const mode = el.dataset.scrollReveal;
+      el.style.visibility = 'visible';
+      if (reduce) { if (mode !== 'element' && el.hasAttribute('data-font-weight-hover')) { splitFor(el, mode); el.dispatchEvent(new CustomEvent('reveal:done')); } return; }
+      if (mode === 'element') { tl.fromTo(el, { y: 24, autoAlpha: 0 }, { y: 0, autoAlpha: 1, duration: 0.8, ease: 'expo.out' }, at); return; }
+      const s = splitFor(el, mode);
+      const targets = mode === 'chars' ? s.chars : s.lines;
+      tl.from(targets, { yPercent: 135, duration: 1, ease: 'expo.out', stagger: mode === 'chars' ? 0.0175 : 0.07, onComplete: () => el.dispatchEvent(new CustomEvent('reveal:done')) }, at);
+    };
+    document.querySelectorAll('[data-scroll-reveal-group]').forEach(g => {
+      const tl = gsap.timeline({ paused: true });
+      g.querySelectorAll('[data-scroll-reveal]').forEach((el, i) => { done.add(el); anim(el, tl, i * 0.12); });
+      ScrollTrigger.create({ trigger: g, start: 'top 85%', once: true, onEnter: () => tl.play() });
+    });
+    document.querySelectorAll('[data-scroll-reveal]').forEach(el => {
+      if (done.has(el)) return;
+      if (el.dataset.scrollReveal === 'element' && el.closest('[data-featured-stack]') && matchMedia('(min-width: 992px)').matches) { el.style.visibility = 'visible'; return; }
+      const tl = gsap.timeline({ paused: true }); anim(el, tl, 0);
+      ScrollTrigger.create({ trigger: el, start: 'top 88%', once: true, onEnter: () => tl.play() });
+    });
+  }
+
+  /* 6.9 Pilha 3D (desktop) */
+  function initStack() {
+    const sec = document.querySelector('[data-featured-stack]'); if (!sec) return;
+    const pin = sec.querySelector('.pin'), root = sec.querySelector('.stack-root'), badge = sec.querySelector('.badge svg');
+    const slides = [...sec.querySelectorAll('.slide')], n = slides.length;
+    const factor = +sec.dataset.featuredStack || 1.2;
+    gsap.matchMedia().add('(min-width: 992px)', () => {
+      slides.forEach((s, b) => gsap.set(s, { z: -b * 120, y: -b * 40, zIndex: n - b, autoAlpha: 1 }));
+      const tl = gsap.timeline({ paused: true });
+      for (let b = 0; b < n - 1; b++) {
+        tl.to(slides[b], { y: '+=' + innerHeight * 0.9, ease: 'power2.in', duration: 1 }, b)
+          .to(slides[b], { autoAlpha: 0, ease: 'none', duration: 0.25 }, b + 0.7);
+        for (let c = b + 1; c < n; c++) tl.to(slides[c], { z: -(c - b - 1) * 120, y: -(c - b - 1) * 40, ease: 'none', duration: 1 }, b);
+      }
+      tl.fromTo(badge, { rotation: 0 }, { rotation: 180, ease: 'none', duration: n - 1, transformOrigin: '50% 50%' }, 0);
+      const st = ScrollTrigger.create({ trigger: sec, start: 'top top', end: () => '+=' + innerHeight * factor * (n - 1), pin, pinSpacing: true, scrub: 0.3, refreshPriority: 1, invalidateOnRefresh: true, onUpdate: self => tl.progress(self.progress) });
+      let onMove, onLeave;
+      if (!reduce) {
+        const rx = gsap.quickTo(root, 'rotationX', { duration: 0.6, ease: 'power3' }), ry = gsap.quickTo(root, 'rotationY', { duration: 0.6, ease: 'power3' });
+        onMove = e => { const r = pin.getBoundingClientRect(); rx(-((e.clientY - r.top) / r.height - 0.5) * 6); ry(((e.clientX - r.left) / r.width - 0.5) * 10); };
+        onLeave = () => { rx(0); ry(0); };
+        pin.addEventListener('mousemove', onMove); pin.addEventListener('mouseleave', onLeave);
+      }
+      return () => { st.kill(); tl.kill(); if (onMove) { pin.removeEventListener('mousemove', onMove); pin.removeEventListener('mouseleave', onLeave); } gsap.set(slides, { clearProps: 'all' }); gsap.set(root, { clearProps: 'transform' }); };
+    });
+  }
+
+  /* 6.10 Etiqueta que segue o cursor sobre os cards */
+  function initCursorLabel() {
+    if (!fine) return;
+    const wrap = document.querySelector('.cursor-label'), spans = wrap.querySelectorAll('span');
+    const qx = gsap.quickTo(wrap, 'x', { duration: 0.4, ease: 'power3' }), qy = gsap.quickTo(wrap, 'y', { duration: 0.4, ease: 'power3' });
+    let first = true, cur = null, px = 0, py = 0, t = 0;
+    const check = () => {
+      const el = document.elementFromPoint(px, py); const hit = el && el.closest('[data-cursor-marquee-text]');
+      if (hit && hit !== cur) {
+        cur = hit; clearTimeout(t); const txt = hit.dataset.cursorMarqueeText;
+        spans.forEach(s => { s.textContent = txt; s.style.animationDuration = (txt.length / 5) + 's'; s.style.animationPlayState = 'running'; });
+        wrap.dataset.cursorMarqueeStatus = 'active';
+      } else if (!hit && cur) {
+        cur = null; wrap.dataset.cursorMarqueeStatus = 'not-active';
+        t = setTimeout(() => spans.forEach(s => s.style.animationPlayState = 'paused'), 400);
+      }
+    };
+    addEventListener('pointermove', e => { px = e.clientX; py = e.clientY; if (first) { first = false; gsap.set(wrap, { x: px, y: py }); } qx(px); qy(py); check(); }, { passive: true });
+    addEventListener('scroll', () => { if (!first) check(); }, { passive: true });
+  }
+
+  /* 6.11 Pratos subindo em velocidades diferentes */
+  function initParallax() {
+    const photos = [...document.querySelectorAll('.flock .ph')]; if (!photos.length) return;
+    const mm = gsap.matchMedia();
+    mm.add({ d: '(min-width: 992px)', t: '(min-width: 480px) and (max-width: 991px)', m: '(max-width: 479px)', rm: '(prefers-reduced-motion: reduce)' }, ctx => {
+      if (ctx.conditions.rm) return;
+      const k = ctx.conditions.d ? 1 : ctx.conditions.t ? 0.5 : 0.3;
+      photos.forEach(p => { const sp = +p.dataset.speed || 1, dist = 320 * k;
+        gsap.fromTo(p, { y: dist * sp }, { y: -dist * sp, ease: 'none', scrollTrigger: { trigger: '.flock', start: 'clamp(top bottom)', end: 'clamp(bottom top)', scrub: true, invalidateOnRefresh: true, refreshPriority: -1 } }); });
+    });
+  }
+
+  /* 6.12 Toque com inércia nos pratos */
+  function initMomentum() {
+    if (!fine || reduce) return;
+    let lx = 0, ly = 0, vx = 0, vy = 0, x = 0, y = 0;
+    addEventListener('pointermove', e => { x = e.clientX; y = e.clientY; }, { passive: true });
+    gsap.ticker.add(() => { vx = x - lx; vy = y - ly; lx = x; ly = y; });
+    document.querySelectorAll('[data-momentum]').forEach(t => t.addEventListener('mouseenter', () => {
+      const r = t.getBoundingClientRect(); const F = x - (r.left + r.width / 2), R = y - (r.top + r.height / 2);
+      const torque = (F * vy - R * vx) / (Math.hypot(F, R) || 1);
+      gsap.to(t, { inertia: { x: { velocity: clamp(-1080, 1080, vx * 30), end: 0 }, y: { velocity: clamp(-1080, 1080, vy * 30), end: 0 }, rotation: { velocity: clamp(-60, 60, torque * 20), end: 0 }, resistance: 200 } });
+    }));
+  }
+
+  /* 6.13 Troca de tema da página */
+  function initTheme() {
+    document.querySelectorAll('[data-page-theme]').forEach(el => ScrollTrigger.create({ trigger: el, start: 'top 55%', end: 'bottom 45%', refreshPriority: -1,
+      onToggle: self => { if (self.isActive) root.dataset.theme = el.dataset.pageTheme; else root.removeAttribute('data-theme'); } }));
+  }
+
+  /* 6.8 Faixa que inverte com a direção da rolagem */
+  function initMarquee() {
+    document.querySelectorAll('[data-marquee]').forEach(mq => {
+      const scroll = mq.querySelector('.scroll'), coll = mq.querySelector('.coll');
+      const dir = mq.dataset.direction === 'right' ? 1 : -1;
+      const speed = +mq.dataset.speed || 30;
+      for (let i = 0; i < 2; i++) scroll.appendChild(coll.cloneNode(true));
+      if (reduce) return;
+      const f = innerWidth < 479 ? 0.25 : innerWidth < 991 ? 0.5 : 1;
+      const dur = speed * (coll.offsetWidth / innerWidth) * f;
+      const colls = scroll.querySelectorAll('.coll');
+      gsap.set(colls, { xPercent: dir === 1 ? -100 : 0 });
+      const tl = gsap.to(colls, { xPercent: dir === 1 ? 0 : -100, repeat: -1, ease: 'none', duration: dur });
+      tl.totalProgress(0.5);
+      ScrollTrigger.create({ trigger: mq, start: 'top bottom', end: 'bottom top',
+        onUpdate: self => gsap.to(tl, { timeScale: self.direction === 1 ? 1 : -1, duration: 0.3, overwrite: true }) });
+      gsap.fromTo(scroll, { x: '10vw' }, { x: '-10vw', ease: 'none', scrollTrigger: { trigger: mq, start: 'top bottom', end: 'bottom top', scrub: 0 } });
+    });
+  }
+
+  /* 6.2 Sequência de abertura */
+  function init() {
+    initDrawLines();
+    initScrollReveal();
+    initFontWeightHover();
+    initStack();
+    initCursorLabel();
+    initParallax();
+    initMomentum();
+    initTheme();
+    initTouchWeight();
+    initMobileBar();
+    initMarquee();
+    ScrollTrigger.refresh();
+  }
+  const start = () => {
+    if (root.hasAttribute('data-page-ready')) return;
+    root.setAttribute('data-page-ready', '');
+    const main = document.querySelector('main');
+    const wipe = document.querySelector('.wipe'), path = wipe.querySelector('path');
+    if (reduce) {
+      wipe.setAttribute('data-transition-ready', '');
+      document.querySelectorAll('[data-text-reveal],[data-scroll-reveal]').forEach(e => e.style.visibility = 'visible');
+      init(); drawAlways(document.querySelector('.cta .txt'), 0); return;
+    }
+    const tl = gsap.timeline();
+    tl.set(main, { autoAlpha: 0 })
+      .set(path, { drawSVG: '0% 100%', strokeWidth: '30%' })
+      .addLabel('reveal', 0.4)
+      .set(main, { autoAlpha: 1 }, 'reveal')
+      .call(() => { textReveal(0.6); init(); drawAlways(document.querySelector('.cta .txt'), 1.3); }, null, 'reveal')
+      .to(path, { drawSVG: '100% 100%', strokeWidth: '5%', duration: 1.25, ease: 'power1.inOut', onComplete: () => wipe.setAttribute('data-transition-ready', '') }, 'reveal');
+  };
+  Promise.race([document.fonts.ready, new Promise(r => setTimeout(r, 1500))]).then(start);
+})();
+</script>
+</body>
+</html>
